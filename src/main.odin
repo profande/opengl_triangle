@@ -115,9 +115,9 @@ main :: proc() {
         return program
     }
 
-    vertex_shader := compile_shader("./shaders/shader.vert", gl.VERTEX_SHADER)
+    vertex_shader := compile_shader("../shaders/shader.vert", gl.VERTEX_SHADER)
     defer gl.DeleteShader(vertex_shader)
-    fragment_shader := compile_shader("./shaders/shader.frag", gl.FRAGMENT_SHADER)
+    fragment_shader := compile_shader("../shaders/shader.frag", gl.FRAGMENT_SHADER)
     defer gl.DeleteShader(fragment_shader)
 
     program := create_program(vertex_shader, fragment_shader)
