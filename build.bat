@@ -1,0 +1,27 @@
+@ECHO OFF
+
+SET APPLICATION_NAME=opengl_triangle
+SET DEBUG=TRUE
+SET AUTORUN=TRUE
+
+IF %DEBUG%==TRUE (
+    SET DEBUG_FLAG=-debug
+)
+
+IF %AUTORUN%==TRUE (
+    SET COMMAND=run
+) ELSE (
+    SET COMMAND=build
+)
+
+IF NOT EXIST bin\ (
+    MKDIR bin
+)
+
+PUSHD src
+    @ECHO ON
+        odin %COMMAND% ./ %DEBUG_FLAG% -out:%APPLICATION_NAME%.exe -pdb-name:%APPLICATION_NAME%.pdb
+    @ECHO OFF
+    
+    MOVE %APPLICATION_NAME%.* ..\bin
+POPD
