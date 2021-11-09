@@ -41,10 +41,10 @@ main :: proc() {
     )
 
     vertex_data :: []f32{
-    //   Vertices       Colors
-        -0.5, -0.5,  1.0, 0.0, 0.0,
-         0.5, -0.5,  0.0, 1.0, 0.0,
-         0.0,  0.5,  0.0, 0.0, 1.0,
+        //  Vertices           Colors
+        -0.5, -0.5,  0.0,   1.0, 0.0, 0.0,
+         0.5, -0.5,  0.0,   0.0, 1.0, 0.0,
+         0.0,  0.5,  0.0,   0.0, 0.0, 1.0,
     }
 
     vbo: u32
@@ -56,11 +56,11 @@ main :: proc() {
     gl.BindVertexArray(vao)
 
     gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-    gl.BufferData(gl.ARRAY_BUFFER, size_of(vertex_data), raw_data(vertex_data), gl.STATIC_DRAW)
+    gl.BufferData(gl.ARRAY_BUFFER, len(vertex_data) * size_of(f32), raw_data(vertex_data), gl.STATIC_DRAW)
 
-    gl.VertexAttribPointer(0, 2, gl.FLOAT, gl.FALSE, 2 * size_of(f32), cast(rawptr)cast(uintptr)0)
+    gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), cast(rawptr)cast(uintptr)0)
     gl.EnableVertexAttribArray(0)
-    gl.VertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 3 * size_of(f32), cast(rawptr)cast(uintptr)2)
+    gl.VertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 6 * size_of(f32), cast(rawptr)cast(uintptr)(3 * size_of(f32)))
     gl.EnableVertexAttribArray(1)
 
     compile_shader :: proc(path: string, shader_type: u32) -> u32 {
@@ -90,10 +90,38 @@ main :: proc() {
         return shader
     }
 
-    vertex_shader := compile_shader("./shaders/shader.vert", gl.VERTEX_SHADER)
-    fragment_shader := compile_shader("./shaders/shader.frag", gl.FRAGMENT_SHADER)
+    create_program :: proc(vert_shader, frag_shader: u32) -> u32 {
+        program := gl.CreateProgram()
+        
+        gl.AttachShader(program, vert_shader)
+        defer gl.DetachShader(program, vert_shader)
+        gl.AttachShader(program, frag_shader)
+        defer gl.DetachShader(program, frag_shader)
 
-    
+        gl.LinkProgram(program)
+
+        is_linked: i32
+        gl.GetProgramiv(program, gl.LINK_STATUS, transmute([^]i32)&is_linked)
+        if is_linked == 0 {
+            log_len: i32
+            gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, transmute([^]i32)&is_linked)
+
+            buf, _ := mem.make([dynamic]u8, log_len)
+
+            gl.GetProgramInfoLog(program, log_len, nil, raw_data(buf))
+            fmt.panicf("\n\tShader Program Creation Failed:\n{}", cstring(raw_data(buf)))
+        }
+
+        return program
+    }
+
+    vertex_shader := compile_shader("./shaders/shader.vert", gl.VERTEX_SHADER)
+    defer gl.DeleteShader(vertex_shader)
+    fragment_shader := compile_shader("./shaders/shader.frag", gl.FRAGMENT_SHADER)
+    defer gl.DeleteShader(fragment_shader)
+
+    program := create_program(vertex_shader, fragment_shader)
+    defer gl.DeleteProgram(program)
 
     process_input :: proc(window: glfw.WindowHandle) {
         if glfw.GetKey(window, glfw.KEY_ESCAPE) == glfw.PRESS {
@@ -107,7 +135,9 @@ main :: proc() {
         gl.ClearColor(0.0, 0.0, 0.0, 1.0)
         gl.Clear(gl.COLOR_BUFFER_BIT)
 
-        
+        gl.UseProgram(program)
+        gl.BindVertexArray(vao)
+        gl.DrawArrays(gl.TRIANGLES, 0, 3)
 
         glfw.SwapBuffers(window)
         glfw.PollEvents()
